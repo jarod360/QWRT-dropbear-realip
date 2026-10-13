@@ -194,9 +194,7 @@ jobs:
           # Running the patch a second time proves it is idempotent.
           python3 ../realip/scripts/patch_dropbear_ppv2.py "$SOURCE_DIR"
 
-          # Configure separately so all source-level checks run while the
-          # prepared source tree is guaranteed to exist, before compile can
-          # clean or otherwise alter the temporary build directory.
+          # Configure separately so source-level checks run before compile.
           make package/network/services/dropbear/configure V=s -j1
 
           SOURCE_DIR="$(find build_dir -type d -name 'dropbear-2026.91' -print -quit)"
@@ -204,56 +202,7 @@ jobs:
           test -s "$SOURCE_DIR/localoptions.h"
 
           echo "===== verify compile options before compile ====="
-          grep -Eq '^#define DROPBEAR_REEXEC 0
-      - name: Verify package metadata, ELF, and PPv2 code
-        working-directory: openwrt
-        run: |
-          set -eu
-          mkdir -p ../realip/artifacts
-          find bin/packages -type f -name 'dropbear*.ipk' -print
-
-          IPK="$(find bin/packages -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
-          test -n "$IPK"
-          cp -f "$IPK" ../realip/artifacts/
-
-          echo "===== package archive ====="
-          tar -tzf "$IPK"
-
-          CONTROL="$(tar -xzOf "$IPK" ./control.tar.gz | tar -xzOf - ./control)"
-          printf '%s\n' "$CONTROL" | grep -E '^(Package|Version|Architecture|Depends):'
-          printf '%s\n' "$CONTROL" | grep -qx 'Architecture: aarch64_cortex-a53'
-          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r3$'
-
-          echo "===== extract package files ====="
-          tar -xzOf "$IPK" ./data.tar.gz | tar -xz -C ../realip/artifacts/ -f -
-          BIN="../realip/artifacts/usr/sbin/dropbear"
-          test -s "$BIN"
-          file "$BIN"
-          readelf -h "$BIN" | grep -E 'Class:|Machine:'
-          readelf -h "$BIN" | grep -q 'AArch64'
-
-          echo "===== verify PPv2 strings are present in packaged server ====="
-          strings -a "$BIN" | grep -F 'invalid Proxy Protocol v2 header'
-          strings -a "$BIN" | grep -F '192.168.0.254'
-          strings -a "$BIN" | grep -F 'SSH_CONNECTION'
-
-          echo "===== hashes ====="
-          sha256sum "$IPK" ../realip/artifacts/usr/sbin/dropbear
-
-      - name: Upload package and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dropbear-ppv2-immortalwrt-24.10.6-aarch64-cortex-a53
-          path: |
-            realip/artifacts/*.ipk
-            realip/artifacts/*.log
-            realip/artifacts/usr/sbin/dropbear
-            realip/artifacts-host-tools.log
-            realip/artifacts-toolchain.log
-          if-no-files-found: warn
-          retention-days: 30
- "$SOURCE_DIR/localoptions.h"
+          grep -Fqx '#define DROPBEAR_REEXEC 0' "$SOURCE_DIR/localoptions.h"
           echo "OK: DROPBEAR_REEXEC=0"
 
           echo "===== verify all PPv2 source integration before compile ====="
