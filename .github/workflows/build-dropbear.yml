@@ -98,21 +98,23 @@ jobs:
           # These two ImmortalWrt patches were already merged into the
           # upstream Dropbear 2026.91 release. Reapplying the old backports
           # fails against the updated source and can duplicate code changes.
-          obsolete_patches = [
+          obsolete_upstream_patches = [
               Path('package/network/services/dropbear/patches/001-Drop-privileges-after-user-authentication.patch'),
               Path('package/network/services/dropbear/patches/002-Remove-return-code-from-login_login.patch'),
           ]
-          for patch in obsolete_patches:
+          for patch in obsolete_upstream_patches:
               if patch.exists():
                   patch.unlink()
                   print(f'Removed obsolete backport already present in Dropbear 2026.91: {patch}')
               else:
                   print(f'Obsolete backport already absent: {patch}')
 
-          if any(patch.exists() for patch in obsolete_patches):
-              raise SystemExit('Obsolete backport patches must not be applied to Dropbear 2026.91')
-          if not (Path('package/network/services/dropbear/patches/100-pubkey_path.patch')).exists():
-              raise SystemExit('Expected ImmortalWrt authorized_keys path patch is missing')
+          legacy_pubkey_patch = Path('package/network/services/dropbear/patches/100-pubkey_path.patch')
+          if legacy_pubkey_patch.exists():
+              legacy_pubkey_patch.unlink()
+              print('Removed legacy pubkey-path patch; its /etc/dropbear root-key behavior is ported into patch_dropbear_ppv2.py')
+          if any(patch.exists() for patch in obsolete_upstream_patches) or legacy_pubkey_patch.exists():
+              raise SystemExit('Legacy patches must not be applied to Dropbear 2026.91')
           if 'DROPBEAR_REEXEC,0' not in s or 'patch_dropbear_ppv2.py' not in s:
               raise SystemExit('PPv2/re-exec package hook verification failed')
 
