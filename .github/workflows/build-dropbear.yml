@@ -106,10 +106,6 @@ jobs:
               Path('package/network/services/dropbear/patches/004-Limit-rekey-to-current-hostkey-type.patch'),
               Path('package/network/services/dropbear/patches/005-Restore-seteuid-for-authorized_keys.patch'),
               Path('package/network/services/dropbear/patches/006-scp-CVE-2019-6111-fix.patch'),
-              # Dropbear 2026.91 already contains the restored seteuid logic.
-              Path('package/network/services/dropbear/patches/005-Restore-seteuid-for-authorized_keys.patch'),
-              # Dropbear 2026.91 already includes SCP filename validation.
-              Path('package/network/services/dropbear/patches/006-scp-CVE-2019-6111-fix.patch'),
           ]
           for patch in obsolete_upstream_patches:
               if patch.exists():
