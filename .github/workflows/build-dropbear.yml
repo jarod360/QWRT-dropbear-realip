@@ -102,6 +102,7 @@ jobs:
               Path('package/network/services/dropbear/patches/001-Drop-privileges-after-user-authentication.patch'),
               Path('package/network/services/dropbear/patches/002-Remove-return-code-from-login_login.patch'),
               Path('package/network/services/dropbear/patches/003-Retain-utmp-saved-group-when-dropping-privileges.patch'),
+              Path('package/network/services/dropbear/patches/004-Limit-rekey-to-current-hostkey-type.patch'),
           ]
           for patch in obsolete_upstream_patches:
               if patch.exists():
