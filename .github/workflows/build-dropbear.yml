@@ -28,6 +28,9 @@ jobs:
         with:
           path: realip
 
+      - name: Validate PPv2 patch script syntax
+        run: python3 -m py_compile realip/scripts/patch_dropbear_ppv2.py
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
