@@ -165,7 +165,7 @@ jobs:
           mkdir -p ../realip/artifacts
           find bin/packages -type f -name 'dropbear*.ipk' -print
 
-          IPK="$(find bin/packages -type f -name 'dropbear_2026.91-3_*.ipk' -print -quit)"
+          IPK="$(find bin/packages -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
           test -n "$IPK"
           cp -f "$IPK" ../realip/artifacts/
 
