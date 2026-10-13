@@ -103,6 +103,8 @@ jobs:
               Path('package/network/services/dropbear/patches/002-Remove-return-code-from-login_login.patch'),
               Path('package/network/services/dropbear/patches/003-Retain-utmp-saved-group-when-dropping-privileges.patch'),
               Path('package/network/services/dropbear/patches/004-Limit-rekey-to-current-hostkey-type.patch'),
+              # Dropbear 2026.91 already contains the restored seteuid logic.
+              Path('package/network/services/dropbear/patches/005-Restore-seteuid-for-authorized_keys.patch'),
           ]
           for patch in obsolete_upstream_patches:
               if patch.exists():
@@ -143,6 +145,27 @@ jobs:
       - name: Download sources
         working-directory: openwrt
         run: make download -j4
+
+      - name: Preflight every remaining Dropbear patch
+        working-directory: openwrt
+        run: |
+          set -eu
+          PATCH_DIR="package/network/services/dropbear/patches"
+          SOURCE_ARCHIVE="dl/dropbear-2026.91.tar.bz2"
+          test -s "$SOURCE_ARCHIVE"
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          tar -xjf "$SOURCE_ARCHIVE" -C "$TMP_DIR"
+          SOURCE_DIR="$TMP_DIR/dropbear-2026.91"
+          test -d "$SOURCE_DIR"
+
+          echo "===== Validate every remaining patch in package application order ====="
+          for patch_file in "$PATCH_DIR"/*.patch; do
+            [ -f "$patch_file" ] || continue
+            echo "===== PRECHECK: $patch_file ====="
+            patch --batch --forward -p1 -d "$SOURCE_DIR" < "$patch_file"
+          done
+          echo "OK: all remaining Dropbear patches apply cleanly to 2026.91"
 
       - name: Build host tools
         working-directory: openwrt
