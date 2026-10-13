@@ -95,12 +95,13 @@ jobs:
               raise SystemExit('Version pin verification failed')
           if 'PKG_HASH:=defa924475abf6bc1e74abc00173e46bfdc804bd47caafa14f5a4ef0cc76da34' not in s:
               raise SystemExit('Source hash verification failed')
-          # These two ImmortalWrt patches were already merged into the
-          # upstream Dropbear 2026.91 release. Reapplying the old backports
-          # fails against the updated source and can duplicate code changes.
+          # These ImmortalWrt backports are already present in upstream
+          # Dropbear 2026.91. Reapplying them fails against the updated source
+          # (some hunks now match code that is already present).
           obsolete_upstream_patches = [
               Path('package/network/services/dropbear/patches/001-Drop-privileges-after-user-authentication.patch'),
               Path('package/network/services/dropbear/patches/002-Remove-return-code-from-login_login.patch'),
+              Path('package/network/services/dropbear/patches/003-Retain-utmp-saved-group-when-dropping-privileges.patch'),
           ]
           for patch in obsolete_upstream_patches:
               if patch.exists():
