@@ -175,7 +175,7 @@ jobs:
           CONTROL="$(tar -xzOf "$IPK" ./control.tar.gz | tar -xzOf - ./control)"
           printf '%s\n' "$CONTROL" | grep -E '^(Package|Version|Architecture|Depends):'
           printf '%s\n' "$CONTROL" | grep -qx 'Architecture: aarch64_cortex-a53'
-          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-3$'
+          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r3$'
 
           echo "===== extract package files ====="
           tar -xzOf "$IPK" ./data.tar.gz | tar -xz -C ../realip/artifacts/ -f -
