@@ -69,18 +69,13 @@ static int qwrt_pp2_is_trusted_proxy(const struct sockaddr_storage *peer)
     return 0;
 }
 
-/* Read exactly len bytes under one five-second deadline, including partial
- * reads. This prevents a trusted-peer connection from holding accept() up
- * indefinitely by sending the header very slowly. */
-static int qwrt_pp2_read_exact(int fd, unsigned char *buf, size_t len)
+/* Read exactly len bytes before one shared five-second deadline, including
+ * partial reads. The parser passes the same deadline for the fixed header and
+ * payload so a slow peer cannot reset the timeout between them. */
+static int qwrt_pp2_read_exact(int fd, unsigned char *buf, size_t len,
+                               const struct timeval *deadline)
 {
-    struct timeval deadline;
     size_t offset = 0;
-
-    if (gettimeofday(&deadline, NULL) < 0) {
-        return -1;
-    }
-    deadline.tv_sec += QWRT_PP2_TIMEOUT_SECONDS;
 
     while (offset < len) {
         struct timeval now, timeout;
@@ -91,8 +86,8 @@ static int qwrt_pp2_read_exact(int fd, unsigned char *buf, size_t len)
         if (gettimeofday(&now, NULL) < 0) {
             return -1;
         }
-        timeout.tv_sec = deadline.tv_sec - now.tv_sec;
-        timeout.tv_usec = deadline.tv_usec - now.tv_usec;
+        timeout.tv_sec = deadline->tv_sec - now.tv_sec;
+        timeout.tv_usec = deadline->tv_usec - now.tv_usec;
         if (timeout.tv_usec < 0) {
             timeout.tv_sec--;
             timeout.tv_usec += 1000000;
@@ -144,8 +139,13 @@ static int qwrt_pp2_parse(int fd, struct sockaddr_storage *realaddr,
     };
     unsigned char header[QWRT_PP2_MAX_HEADER];
     unsigned int payload_len, address_len, offset;
+    struct timeval deadline;
 
-    if (qwrt_pp2_read_exact(fd, header, 16) < 0) {
+    if (gettimeofday(&deadline, NULL) < 0) {
+        return -1;
+    }
+    deadline.tv_sec += QWRT_PP2_TIMEOUT_SECONDS;
+    if (qwrt_pp2_read_exact(fd, header, 16, &deadline) < 0) {
         return -1;
     }
     if (memcmp(header, signature, sizeof(signature)) != 0) {
@@ -162,7 +162,7 @@ static int qwrt_pp2_parse(int fd, struct sockaddr_storage *realaddr,
     if (payload_len > sizeof(header) - 16) {
         return -1;
     }
-    if (qwrt_pp2_read_exact(fd, header + 16, payload_len) < 0) {
+    if (qwrt_pp2_read_exact(fd, header + 16, payload_len, &deadline) < 0) {
         return -1;
     }
 
