@@ -298,8 +298,8 @@ void svr_get_remote_address(int sock, char **host, char **port, int numeric)
     # /etc/dropbear/authorized_keys; non-root keys use the configured -D dir.
     replace_once(
         root / "src/svr-authpubkey.c",
-        '\tconst char *filename = "authorized_keys";\\n\\n\\tdir = expand_homedir_path_home(svr_opts.authorized_keys_dir,\\n\\t\\t\\t\\t       ses.authstate.pw_dir);',
-        '\tconst char *filename = "authorized_keys";\\n\\tconst char *key_dir = svr_opts.authorized_keys_dir;\\n\\n\\t/* QWRT root authorized_keys path: keep ImmortalWrt compatibility. */\\n\\tif (ses.authstate.pw_uid == 0) {\\n\\t\\tkey_dir = "/etc/dropbear";\\n\\t}\\n\\tdir = expand_homedir_path_home(key_dir, ses.authstate.pw_dir);',
+        '\tconst char *filename = "authorized_keys";\n\n\\tdir = expand_homedir_path_home(svr_opts.authorized_keys_dir,\n\\t\\t\\t\\t       ses.authstate.pw_dir);',
+        '\tconst char *filename = "authorized_keys";\n\\tconst char *key_dir = svr_opts.authorized_keys_dir;\n\n\\t/* QWRT root authorized_keys path: keep ImmortalWrt compatibility. */\n\\tif (ses.authstate.pw_uid == 0) {\n\\t\\tkey_dir = "/etc/dropbear";\n\\t}\n\\tdir = expand_homedir_path_home(key_dir, ses.authstate.pw_dir);',
         "QWRT root authorized_keys path",
     )
 
