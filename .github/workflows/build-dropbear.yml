@@ -95,14 +95,17 @@ jobs:
               raise SystemExit('Version pin verification failed')
           if 'PKG_HASH:=defa924475abf6bc1e74abc00173e46bfdc804bd47caafa14f5a4ef0cc76da34' not in s:
               raise SystemExit('Source hash verification failed')
-          # These ImmortalWrt backports are already present in upstream
-          # Dropbear 2026.91. Reapplying them fails against the updated source
-          # (some hunks now match code that is already present).
+          # These ImmortalWrt patches are obsolete for upstream Dropbear 2026.91:
+          # 001-005 are already integrated upstream; 006's CVE-2019-6111
+          # protection is also present in 2026.91 with a newer implementation.
+          # Reapplying these older patches fails because their hunks are obsolete.
           obsolete_upstream_patches = [
               Path('package/network/services/dropbear/patches/001-Drop-privileges-after-user-authentication.patch'),
               Path('package/network/services/dropbear/patches/002-Remove-return-code-from-login_login.patch'),
               Path('package/network/services/dropbear/patches/003-Retain-utmp-saved-group-when-dropping-privileges.patch'),
               Path('package/network/services/dropbear/patches/004-Limit-rekey-to-current-hostkey-type.patch'),
+              Path('package/network/services/dropbear/patches/005-Restore-seteuid-for-authorized_keys.patch'),
+              Path('package/network/services/dropbear/patches/006-scp-CVE-2019-6111-fix.patch'),
               # Dropbear 2026.91 already contains the restored seteuid logic.
               Path('package/network/services/dropbear/patches/005-Restore-seteuid-for-authorized_keys.patch'),
               # Dropbear 2026.91 already includes SCP filename validation.
