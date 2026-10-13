@@ -106,7 +106,11 @@ jobs:
               if patch.exists():
                   patch.unlink()
                   print(f'Removed obsolete backport already present in Dropbear 2026.91: {patch}')
+              else:
+                  print(f'Obsolete backport already absent: {patch}')
 
+          if any(patch.exists() for patch in obsolete_patches):
+              raise SystemExit('Obsolete backport patches must not be applied to Dropbear 2026.91')
           if not (Path('package/network/services/dropbear/patches/100-pubkey_path.patch')).exists():
               raise SystemExit('Expected ImmortalWrt authorized_keys path patch is missing')
           if 'DROPBEAR_REEXEC,0' not in s or 'patch_dropbear_ppv2.py' not in s:
