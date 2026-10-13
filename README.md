@@ -36,7 +36,7 @@ expand this trust to the whole LAN unless that is an explicit security decision.
 4. Inspect the package metadata and target device compatibility before installing.
 
 The workflow pins ImmortalWrt v24.10.6, the upstream Dropbear 2026.91 release
-tarball and its SHA-256 hash, and package version 2026.91-3. It checks the
+tarball and its SHA-256 hash, and PKG_RELEASE=3 (OpenWrt package version 2026.91-r3). It checks the
 package architecture and ELF metadata before uploading the result.
 
 ## Before installing on QWRT
