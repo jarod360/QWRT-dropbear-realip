@@ -119,7 +119,7 @@ jobs:
               raise SystemExit('PPv2/re-exec package hook verification failed')
 
           p.write_text(s)
-          print('Pinned Dropbear 2026.91-3, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
+          print('Pinned Dropbear 2026.91-r3, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
           PY
 
       - name: Configure qualcommax/ipq807x package architecture
