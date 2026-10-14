@@ -51,7 +51,7 @@ jobs:
               raise SystemExit('Could not pin PKG_VERSION to 2026.91')
           s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=4', s, count=1, flags=re.M)
           if n != 1:
-              raise SystemExit('Could not set PKG_RELEASE to 3')
+              raise SystemExit('Could not set PKG_RELEASE to 4')
 
           start = s.find('PKG_SOURCE_URL:=')
           end = s.find('PKG_HASH:=', start)
@@ -210,6 +210,8 @@ jobs:
 
           echo "===== verify all PPv2 source integration before compile ====="
           grep -q 'qwrt_pp2_is_trusted_proxy' "$SOURCE_DIR/src/svr-main.c"
+          grep -q 'qwrt_pp2_match_cidr' "$SOURCE_DIR/src/svr-main.c"
+          grep -q '/var/run/dropbear-ppv2-trusted' "$SOURCE_DIR/src/svr-main.c"
           grep -q 'qwrt_pp2_parse(childsock' "$SOURCE_DIR/src/svr-main.c"
           grep -q 'svr_get_remote_address' "$SOURCE_DIR/src/svr-session.c"
           grep -q 'svr_get_remote_address' "$SOURCE_DIR/src/svr-chansession.c"
@@ -247,7 +249,7 @@ jobs:
           CONTROL="$(tar -xzOf "$IPK" ./control.tar.gz | tar -xzOf - ./control)"
           printf '%s\n' "$CONTROL" | grep -E '^(Package|Version|Architecture|Depends):'
           printf '%s\n' "$CONTROL" | grep -qx 'Architecture: aarch64_cortex-a53'
-          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r3$'
+          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r4$'
 
           echo "===== extract package files ====="
           tar -xzOf "$IPK" ./data.tar.gz | tar -xz -C ../realip/artifacts/ -f -
