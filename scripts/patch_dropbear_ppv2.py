@@ -31,42 +31,103 @@ def main() -> None:
     main_helpers = r'''
 /*
  * QWRT Proxy Protocol v2 support.
- *
- * Only the exact local Lucky peer 192.168.0.254 is trusted. A connection
- * from that peer must carry a valid PROXY v2 header; it is never downgraded
- * to a normal SSH connection when the header is absent or malformed.
+ * Trusted peers are read from the UCI-generated runtime file. Each entry
+ * accepts an IPv4/IPv6 address or CIDR; an empty/missing file trusts nobody.
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
 #define QWRT_PP2_MAX_HEADER 1024
 #define QWRT_PP2_TIMEOUT_SECONDS 5
+#define QWRT_PP2_TRUSTED_FILE "/var/run/dropbear-ppv2-trusted"
 
 static struct sockaddr_storage qwrt_pp2_remoteaddr;
 static int qwrt_pp2_remoteaddr_active;
 static int qwrt_pp2_remoteaddr_sock = -1;
 
-static int qwrt_pp2_is_trusted_proxy(const struct sockaddr_storage *peer)
+static int qwrt_pp2_match_prefix(const unsigned char *address,
+                                 const unsigned char *network,
+                                 unsigned int prefix, unsigned int maxbits)
 {
-    struct in_addr trusted;
+    unsigned int bytes, bits;
+    if (prefix > maxbits) return 0;
+    bytes = prefix / 8;
+    bits = prefix % 8;
+    if (bytes && memcmp(address, network, bytes) != 0) return 0;
+    if (bits) {
+        unsigned char mask = (unsigned char)(0xffU << (8 - bits));
+        if ((address[bytes] & mask) != (network[bytes] & mask)) return 0;
+    }
+    return 1;
+}
 
-    if (inet_pton(AF_INET, "192.168.0.254", &trusted) != 1) {
-        return 0;
+static int qwrt_pp2_match_cidr(const struct sockaddr_storage *peer,
+                               const char *entry)
+{
+    char address[INET6_ADDRSTRLEN];
+    char *slash, *end;
+    unsigned long prefix;
+    struct in_addr v4;
+    struct in6_addr v6;
+
+    if (!entry || !*entry || strlen(entry) >= sizeof(address) + 5) return 0;
+    snprintf(address, sizeof(address), "%s", entry);
+    slash = strchr(address, '/');
+    if (slash) {
+        *slash++ = '\0';
+        if (!*slash) return 0;
+        prefix = strtoul(slash, &end, 10);
+        if (*end) return 0;
+    } else {
+        prefix = (unsigned long)-1;
     }
 
     if (peer->ss_family == AF_INET) {
         const struct sockaddr_in *sin = (const struct sockaddr_in *)peer;
-        return sin->sin_addr.s_addr == trusted.s_addr;
+        if (inet_pton(AF_INET, address, &v4) != 1) return 0;
+        if (prefix == (unsigned long)-1) prefix = 32;
+        return qwrt_pp2_match_prefix((const unsigned char *)&sin->sin_addr,
+                                     (const unsigned char *)&v4,
+                                     (unsigned int)prefix, 32);
     }
-
-    /* Also recognise the same IPv4 peer if accept() reports an IPv4-mapped
-     * IPv6 address on a dual-stack listener. */
     if (peer->ss_family == AF_INET6) {
         const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *)peer;
         if (IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr)) {
-            return memcmp(&sin6->sin6_addr.s6_addr[12],
-                          &trusted.s_addr, sizeof(trusted.s_addr)) == 0;
+            struct in_addr peer4;
+            if (inet_pton(AF_INET, address, &v4) != 1) return 0;
+            if (prefix == (unsigned long)-1) prefix = 32;
+            if (prefix > 32) return 0;
+            memcpy(&peer4, &sin6->sin6_addr.s6_addr[12], sizeof(peer4));
+            return qwrt_pp2_match_prefix((const unsigned char *)&peer4,
+                                         (const unsigned char *)&v4,
+                                         (unsigned int)prefix, 32);
+        }
+        if (inet_pton(AF_INET6, address, &v6) != 1) return 0;
+        if (prefix == (unsigned long)-1) prefix = 128;
+        return qwrt_pp2_match_prefix((const unsigned char *)&sin6->sin6_addr,
+                                     (const unsigned char *)&v6,
+                                     (unsigned int)prefix, 128);
+    }
+    return 0;
+}
+
+static int qwrt_pp2_is_trusted_proxy(const struct sockaddr_storage *peer)
+{
+    FILE *fp;
+    char line[INET6_ADDRSTRLEN + 8];
+    int trusted = 0;
+
+    fp = fopen(QWRT_PP2_TRUSTED_FILE, "r");
+    if (!fp) return 0;
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (qwrt_pp2_match_cidr(peer, line)) {
+            trusted = 1;
+            break;
         }
     }
-
-    return 0;
+    fclose(fp);
+    return trusted;
 }
 
 /* Read exactly len bytes before one shared five-second deadline, including
