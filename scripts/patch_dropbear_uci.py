@@ -64,8 +64,8 @@ qwrt_pp2_prepare_trusted_file()
 """
     replace_once(
         init,
-        "start_service()\\n{\\n",
-        uci_functions + "start_service()\\n{\\n",
+        "start_service()\n{\n",
+        uci_functions + "start_service()\n{\n",
         INIT_MARKER,
     )
     replace_once(
