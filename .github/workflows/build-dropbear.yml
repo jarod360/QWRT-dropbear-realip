@@ -29,7 +29,7 @@ jobs:
           path: realip
 
       - name: Validate PPv2 patch script syntax
-        run: python3 -m py_compile realip/scripts/patch_dropbear_ppv2.py
+        run: python3 -m py_compile realip/scripts/patch_dropbear_ppv2.py realip/scripts/patch_dropbear_uci.py
 
       - name: Install build dependencies
         run: |
@@ -49,7 +49,7 @@ jobs:
           s, n = re.subn(r'^PKG_VERSION:=.*$', 'PKG_VERSION:=2026.91', s, count=1, flags=re.M)
           if n != 1:
               raise SystemExit('Could not pin PKG_VERSION to 2026.91')
-          s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=3', s, count=1, flags=re.M)
+          s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=4', s, count=1, flags=re.M)
           if n != 1:
               raise SystemExit('Could not set PKG_RELEASE to 3')
 
@@ -91,7 +91,7 @@ jobs:
                   raise SystemExit('Could not find dropbear BuildPackage anchor')
               s = s.replace(anchor, hook + anchor, 1)
 
-          if 'PKG_VERSION:=2026.91' not in s or 'PKG_RELEASE:=3' not in s:
+          if 'PKG_VERSION:=2026.91' not in s or 'PKG_RELEASE:=4' not in s:
               raise SystemExit('Version pin verification failed')
           if 'PKG_HASH:=defa924475abf6bc1e74abc00173e46bfdc804bd47caafa14f5a4ef0cc76da34' not in s:
               raise SystemExit('Source hash verification failed')
@@ -124,8 +124,11 @@ jobs:
               raise SystemExit('PPv2/re-exec package hook verification failed')
 
           p.write_text(s)
-          print('Pinned Dropbear 2026.91-r3, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
+          print('Pinned Dropbear 2026.91-r4, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
           PY
+
+      - name: Add UCI-configurable trusted proxy list
+        run: python3 realip/scripts/patch_dropbear_uci.py openwrt
 
       - name: Configure qualcommax/ipq807x package architecture
         working-directory: openwrt
@@ -226,9 +229,9 @@ jobs:
           # not bin/packages (which is reserved for feed packages).
           find bin/targets -type f -name 'dropbear*.ipk' -print
 
-          IPK="$(find bin/targets -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
+          IPK="$(find bin/targets -type f -name 'dropbear_2026.91-r4_*.ipk' -print -quit)"
           if [ -z "$IPK" ]; then
-            echo "ERROR: Dropbear 2026.91-r3 IPK was not found."
+            echo "ERROR: Dropbear 2026.91-r4 IPK was not found."
             echo "===== package output directories ====="
             find bin -maxdepth 6 -type d -print 2>/dev/null | sort
             echo "===== all generated Dropbear packages ====="
@@ -256,7 +259,7 @@ jobs:
 
           echo "===== verify PPv2 strings are present in packaged server ====="
           strings -a "$BIN" | grep -F 'invalid Proxy Protocol v2 header'
-          strings -a "$BIN" | grep -F '192.168.0.254'
+          strings -a "$BIN" | grep -F '/var/run/dropbear-ppv2-trusted'
           # SSH_CONNECTION is not a Dropbear binary string contract; verify
           # the PPv2 parser/trust/error markers that are actually compiled in.
 
