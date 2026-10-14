@@ -64,7 +64,7 @@ static int qwrt_pp2_match_prefix(const unsigned char *address,
 static int qwrt_pp2_match_cidr(const struct sockaddr_storage *peer,
                                const char *entry)
 {
-    char address[INET6_ADDRSTRLEN];
+    char address[INET6_ADDRSTRLEN + 6];
     char *slash, *end;
     unsigned long prefix;
     struct in_addr v4;
@@ -77,7 +77,7 @@ static int qwrt_pp2_match_cidr(const struct sockaddr_storage *peer,
         *slash++ = '\0';
         if (!*slash) return 0;
         prefix = strtoul(slash, &end, 10);
-        if (*end) return 0;
+        if (*end || prefix > 128) return 0;
     } else {
         prefix = (unsigned long)-1;
     }
