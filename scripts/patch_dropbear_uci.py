@@ -73,7 +73,7 @@ qwrt_pp2_prepare_trusted_file()
         '\tconfig_load "\${NAME}"\n\tconfig_foreach validate_section_dropbear dropbear dropbear_instance',
         '\tconfig_load "\${NAME}"\n\tqwrt_pp2_prepare_trusted_file\n'
         '\tconfig_foreach validate_section_dropbear dropbear dropbear_instance',
-        "qwrt_pp2_prepare_trusted_file",
+        "\tqwrt_pp2_prepare_trusted_file\n\tconfig_foreach validate_section_dropbear",
     )
 
     replace_once(
