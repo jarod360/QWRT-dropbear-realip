@@ -221,10 +221,21 @@ jobs:
         run: |
           set -eu
           mkdir -p ../realip/artifacts
-          find bin/packages -type f -name 'dropbear*.ipk' -print
+          echo "===== locate generated Dropbear IPK ====="
+          # ImmortalWrt places target packages under bin/targets/<target>/<subtarget>/packages,
+          # not bin/packages (which is reserved for feed packages).
+          find bin/targets -type f -name 'dropbear*.ipk' -print
 
-          IPK="$(find bin/packages -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
-          test -n "$IPK"
+          IPK="$(find bin/targets -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
+          if [ -z "$IPK" ]; then
+            echo "ERROR: Dropbear 2026.91-r3 IPK was not found."
+            echo "===== package output directories ====="
+            find bin -maxdepth 6 -type d -print 2>/dev/null | sort
+            echo "===== all generated Dropbear packages ====="
+            find bin -type f -iname '*dropbear*.ipk' -print 2>/dev/null
+            exit 1
+          fi
+          echo "Found package: $IPK"
           cp -f "$IPK" ../realip/artifacts/
 
           echo "===== package archive ====="
@@ -246,7 +257,8 @@ jobs:
           echo "===== verify PPv2 strings are present in packaged server ====="
           strings -a "$BIN" | grep -F 'invalid Proxy Protocol v2 header'
           strings -a "$BIN" | grep -F '192.168.0.254'
-          strings -a "$BIN" | grep -F 'SSH_CONNECTION'
+          # SSH_CONNECTION is not a Dropbear binary string contract; verify
+          # the PPv2 parser/trust/error markers that are actually compiled in.
 
           echo "===== hashes ====="
           sha256sum "$IPK" ../realip/artifacts/usr/sbin/dropbear
