@@ -7,7 +7,7 @@ This repository builds the Dropbear 2026.91 package for ImmortalWrt v24.10.6
 ## Behavior and trust boundary
 
 - Trusted proxy peers are read from the UCI `ProxyProtocolTrusted` list. IPv4, IPv6, and CIDR entries are supported; no proxy address is compiled into the daemon.
-- Connections from that peer must start with a valid PPv2 PROXY header for IPv4
+- Connections from any configured trusted peer must start with a valid PPv2 PROXY header for IPv4
   or IPv6 TCP. Missing, malformed, unsupported, oversized, truncated, or
   timed-out headers are rejected. The connection is never downgraded to ordinary SSH.
 - The header signature, version/command, family/protocol, total header size,
