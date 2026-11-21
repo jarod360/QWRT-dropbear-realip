@@ -69,7 +69,7 @@ uci commit dropbear
 
 ## 编译和兼容性
 
-`.github/workflows/build-dropbear.yml` 使用 ImmortalWrt `v24.10.6`、目标 `qualcommax/ipq807x`，目标软件包架构 `aarch64_cortex-a53`，Dropbear `2026.91-r4`。
+`.github/workflows/build-dropbear.yml` 使用 ImmortalWrt `v24.10.6`、目标 `qualcommax/ipq807x`，目标软件包架构 `aarch64_cortex-a53`，Dropbear `2026.91-r5`。
 
 在仓库 GitHub Actions 页面选择 **Build Dropbear PPv2 IPK → Run workflow**，构建完成后下载 artifact：`dropbear-ppv2-immortalwrt-24.10.6-aarch64-cortex-a53`。
 
