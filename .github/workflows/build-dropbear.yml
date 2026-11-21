@@ -2,7 +2,7 @@ name: Build Dropbear PPv2 IPK
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/realip-disabled-by-default']
     paths:
       - ".github/workflows/**"
       - "scripts/**"
@@ -28,8 +28,8 @@ jobs:
         with:
           path: realip
 
-      - name: Validate PPv2 patch script syntax
-        run: python3 -m py_compile realip/scripts/patch_dropbear_ppv2.py
+      - name: Validate PPv2 and UCI patch script syntax
+        run: python3 -m py_compile realip/scripts/patch_dropbear_ppv2.py realip/scripts/patch_dropbear_uci.py
 
       - name: Install build dependencies
         run: |
@@ -49,9 +49,9 @@ jobs:
           s, n = re.subn(r'^PKG_VERSION:=.*$', 'PKG_VERSION:=2026.91', s, count=1, flags=re.M)
           if n != 1:
               raise SystemExit('Could not pin PKG_VERSION to 2026.91')
-          s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=3', s, count=1, flags=re.M)
+          s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=4', s, count=1, flags=re.M)
           if n != 1:
-              raise SystemExit('Could not set PKG_RELEASE to 3')
+              raise SystemExit('Could not set PKG_RELEASE to 4')
 
           start = s.find('PKG_SOURCE_URL:=')
           end = s.find('PKG_HASH:=', start)
@@ -91,7 +91,7 @@ jobs:
                   raise SystemExit('Could not find dropbear BuildPackage anchor')
               s = s.replace(anchor, hook + anchor, 1)
 
-          if 'PKG_VERSION:=2026.91' not in s or 'PKG_RELEASE:=3' not in s:
+          if 'PKG_VERSION:=2026.91' not in s or 'PKG_RELEASE:=4' not in s:
               raise SystemExit('Version pin verification failed')
           if 'PKG_HASH:=defa924475abf6bc1e74abc00173e46bfdc804bd47caafa14f5a4ef0cc76da34' not in s:
               raise SystemExit('Source hash verification failed')
@@ -124,8 +124,11 @@ jobs:
               raise SystemExit('PPv2/re-exec package hook verification failed')
 
           p.write_text(s)
-          print('Pinned Dropbear 2026.91-r3, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
+          print('Pinned Dropbear 2026.91-r4, verified source hash, disabled re-exec, and installed PPv2 prepare hook.')
           PY
+
+      - name: Add UCI-configurable trusted proxy list
+        run: python3 realip/scripts/patch_dropbear_uci.py openwrt
 
       - name: Configure qualcommax/ipq807x package architecture
         working-directory: openwrt
@@ -207,6 +210,8 @@ jobs:
 
           echo "===== verify all PPv2 source integration before compile ====="
           grep -q 'qwrt_pp2_is_trusted_proxy' "$SOURCE_DIR/src/svr-main.c"
+          grep -q 'qwrt_pp2_match_cidr' "$SOURCE_DIR/src/svr-main.c"
+          grep -q '/var/run/dropbear-ppv2-trusted' "$SOURCE_DIR/src/svr-main.c"
           grep -q 'qwrt_pp2_parse(childsock' "$SOURCE_DIR/src/svr-main.c"
           grep -q 'svr_get_remote_address' "$SOURCE_DIR/src/svr-session.c"
           grep -q 'svr_get_remote_address' "$SOURCE_DIR/src/svr-chansession.c"
@@ -216,7 +221,7 @@ jobs:
           set -o pipefail
           make package/network/services/dropbear/compile V=s -j1 2>&1 | tee ../realip/artifacts/build.log
 
-      - name: Verify package metadata, ELF, and PPv2 code
+      - name: Verify package metadata, ELF, PPv2 code, and disabled defaults
         working-directory: openwrt
         run: |
           set -eu
@@ -226,9 +231,9 @@ jobs:
           # not bin/packages (which is reserved for feed packages).
           find bin/targets -type f -name 'dropbear*.ipk' -print
 
-          IPK="$(find bin/targets -type f -name 'dropbear_2026.91-r3_*.ipk' -print -quit)"
+          IPK="$(find bin/targets -type f -name 'dropbear_2026.91-r4_*.ipk' -print -quit)"
           if [ -z "$IPK" ]; then
-            echo "ERROR: Dropbear 2026.91-r3 IPK was not found."
+            echo "ERROR: Dropbear 2026.91-r4 IPK was not found."
             echo "===== package output directories ====="
             find bin -maxdepth 6 -type d -print 2>/dev/null | sort
             echo "===== all generated Dropbear packages ====="
@@ -244,7 +249,7 @@ jobs:
           CONTROL="$(tar -xzOf "$IPK" ./control.tar.gz | tar -xzOf - ./control)"
           printf '%s\n' "$CONTROL" | grep -E '^(Package|Version|Architecture|Depends):'
           printf '%s\n' "$CONTROL" | grep -qx 'Architecture: aarch64_cortex-a53'
-          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r3$'
+          printf '%s\n' "$CONTROL" | grep -Eq '^Version: 2026\.91-r4$'
 
           echo "===== extract package files ====="
           tar -xzOf "$IPK" ./data.tar.gz | tar -xz -C ../realip/artifacts/ -f -
@@ -256,7 +261,12 @@ jobs:
 
           echo "===== verify PPv2 strings are present in packaged server ====="
           strings -a "$BIN" | grep -F 'invalid Proxy Protocol v2 header'
-          strings -a "$BIN" | grep -F '192.168.0.254'
+          strings -a "$BIN" | grep -F '/var/run/dropbear-ppv2-trusted'
+          echo "===== verify packaged UCI defaults ====="
+          grep -Fq "option ProxyProtocol '0'" ../realip/artifacts/etc/config/dropbear
+          grep -Fq "ProxyProtocol:bool:0" ../realip/artifacts/etc/init.d/dropbear
+          grep -Fq 'config_get_bool enabled "$1" ProxyProtocol 0' ../realip/artifacts/etc/init.d/dropbear
+          echo "OK: package contains disabled-by-default PPv2 config and init script"
           # SSH_CONNECTION is not a Dropbear binary string contract; verify
           # the PPv2 parser/trust/error markers that are actually compiled in.
 
