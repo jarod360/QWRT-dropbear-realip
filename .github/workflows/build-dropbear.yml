@@ -148,7 +148,7 @@ jobs:
 
       - name: Download sources
         working-directory: openwrt
-        run: make download -j4
+        run: make package/network/services/dropbear/download -j4
 
       - name: Preflight every remaining Dropbear patch
         working-directory: openwrt
