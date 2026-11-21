@@ -70,7 +70,8 @@ static int qwrt_pp2_match_cidr(const struct sockaddr_storage *peer,
     struct in_addr v4;
     struct in6_addr v6;
 
-    if (!entry || !*entry || strlen(entry) >= sizeof(address) + 5) return 0;
+    /* Never match a truncated CIDR string against a trusted peer. */
+    if (!entry || !*entry || strlen(entry) >= sizeof(address)) return 0;
     snprintf(address, sizeof(address), "%s", entry);
     slash = strchr(address, '/');
     if (slash) {
