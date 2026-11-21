@@ -55,7 +55,7 @@ jobs:
               raise SystemExit('Could not pin PKG_VERSION to 2026.91')
           s, n = re.subn(r'^PKG_RELEASE:=.*$', 'PKG_RELEASE:=5', s, count=1, flags=re.M)
           if n != 1:
-              raise SystemExit('Could not set PKG_RELEASE to 4')
+              raise SystemExit('Could not set PKG_RELEASE to 5')
 
           start = s.find('PKG_SOURCE_URL:=')
           end = s.find('PKG_HASH:=', start)
